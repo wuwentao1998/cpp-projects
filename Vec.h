@@ -32,7 +32,7 @@ public:
     ~Vec();
 
     bool empty() const { return base == avail;}
-    iterator begin() { return bsae; }
+    iterator begin() { return base; }
     const_iterator begin() const { return base; }
     iterator end() { return avail; }
     const_iterator end() const { return avail; }
@@ -52,7 +52,7 @@ public:
     ref at(size_type n);
 
     ref operator[](size_type n) {return base[n]; }
-    const_ref operator[](size_type n) { return base[n]; }
+    const_ref operator[](size_type n) const { return base[n]; }
     bool operator==(const Vec& v);
 
 
@@ -62,7 +62,7 @@ private:
     void create(const_iterator begin, const_iterator end);
     void del();
     void grow();
-}
+};
 
 
 
@@ -110,7 +110,7 @@ void Vec<T>::clear()
 
 
 template<typename T>
-iterator Vec<T>::insert(iterator pos, const_ref val)
+typename Vec<T>::iterator Vec<T>::insert(iterator pos, const_ref val)
 {
     if (pos == avail)
         throw "illegal input iterator";
@@ -135,8 +135,9 @@ iterator Vec<T>::insert(iterator pos, const_ref val)
 }
 
 
-template<typename T, typename In>
-iterator Vec<T>::insert(iterator pos, In first, In last)
+template<typename T>
+template<typename In>
+typename Vec<T>::iterator Vec<T>::insert(iterator pos, In first, In last)
 {
     if (pos == avail || last <= first)
         throw "illegal input iterator";
@@ -166,7 +167,7 @@ iterator Vec<T>::insert(iterator pos, In first, In last)
 
 
 template<typename T>
-iterator Vec<T>::erase(iterator pos)
+typename Vec<T>::iterator Vec<T>::erase(iterator pos)
 {
     alloc.destory(pos);
     for(auto it = pos + 1 ; it < avail; ++it)
@@ -179,12 +180,12 @@ iterator Vec<T>::erase(iterator pos)
 
 
 template<typename T>
-iterator Vec<T>::erase(iterator first, iterator last)
+typename Vec<T>::iterator Vec<T>::erase(iterator first, iterator last)
 {
     if (!(first > base && last < avail))
-    throw "illegal input iterator";
+        throw "illegal input iterator";
 
-    for(auto it = first, it != last)
+    for(auto it = first; it != last;++it)
         alloc.destory(it);
 
     size_type minus = last - first;
@@ -199,7 +200,7 @@ iterator Vec<T>::erase(iterator first, iterator last)
 
 
 template<typename T>
-ref at(size_type n)
+typename Vec<T>::ref Vec<T>::at(size_type n)
 {
     if(base + n >= avail)
         throw "illegal position";
@@ -228,7 +229,7 @@ bool Vec<T>::operator==(const Vec& v)
 /* 私有成员函数的实现 */
 
 template<typename T>
-void Vec<T>::create(size_type n = 0, const_ref val = T())
+void Vec<T>::create(size_type n , const_ref val)
 {
     if (n == 0)
         base = limit = avail = nullptr;
@@ -267,7 +268,7 @@ void Vec<T>::del()
 template<typename T>
 void Vec<T>::grow()
 {
-    size_type new_size = (base == limit) ? 1 ： 2*(limit - base);
+    size_type new_size = (base == limit) ? 1 : 2*(limit - base);
     size_type new_base = alloc.allocate(new_size);
     size_type new_avail = uninitialized_copy(base, avail, new_base);
 
