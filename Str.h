@@ -70,9 +70,9 @@ istream& operator>>(istream& is, Str& s)
 }
 
 
-ostream& operator<<(ostream& os, const Str& s);
+ostream& operator<<(ostream& os, const Str& s)
 {
-    for(size_type i = 0; i < s.size(); ++i)
+    for(size_t i = 0; i < s.size(); ++i)
         os << s[i];
 
     return os;
