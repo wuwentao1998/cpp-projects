@@ -1,11 +1,13 @@
 #include <memory>
 #include <iostream>
 #include <algorithm>
+#include <string>
 #include <assert.h>
+#include <crtdbg.h>
 
 using namespace std;
 
-//#define DEBUG
+#define DEBUG
 
 template<typename T>
 class Vec
@@ -103,7 +105,7 @@ void Vec<T>::clear()
 {
     auto it = base;
     while(it != avail)
-        alloc.destroy(it--);
+        alloc.destroy(it++);
 
     avail = base;
 }
@@ -112,26 +114,34 @@ void Vec<T>::clear()
 template<typename T>
 typename Vec<T>::iterator Vec<T>::insert(iterator pos, const_ref val)
 {
-    if (pos == avail)
+    // 要特别考虑空容器的情况
+    if (pos == base && base == avail)
+    {
+        push_back(val);
+        return pos;
+    }
+
+    if (pos >= avail)
         throw "illegal input iterator";
 
     if (avail + 1 > limit)
-        grow();
-
-    if (pos + 1 == avail)
     {
-        alloc.construct(avail++, val);
-        return avail;
+        int offset = pos - base;
+        grow();
+        pos = base + offset;
     }
 
     auto temp = back();
     alloc.construct(avail++, temp);
 
-    for(auto i = avail - 3; i >= pos; --i)
-        base[i+1] = base[i];
+    if (pos + 1 != avail)
+    {
+        for(auto i = avail - 3; i >= pos; --i)
+            *(i+1) = *i;
+    }
 
-    base[pos] = val;
-    return pos + 1;
+    *pos = val;
+    return pos;
 }
 
 
@@ -139,39 +149,61 @@ template<typename T>
 template<typename In>
 typename Vec<T>::iterator Vec<T>::insert(iterator pos, In first, In last)
 {
-    if (pos == avail || last <= first)
+    if ((base != avail && pos >= avail) || last <= first)
         throw "illegal input iterator";
+
+    if (base == avail && pos == avail)
+    {
+        while (first != last)
+        {
+            push_back(*first);
+            first++;
+        }
+        return pos;
+    }
 
     size_type add = last - first;
 
     if (avail + add > limit)
+    {
+        int offset = pos - base; // 因为grow后pos迭代器会失效，所以讲迭代器转换为偏移量
         grow();
+        pos = base + offset;
+    }
 
     if (pos + 1 == avail)
     {
-        copy(first, last, pos);
+        uninitialized_copy(first, last, avail);
         avail += add;
-        return avail;
+        return pos;
     }
 
-    auto temp = back();
+    // 分类讨论
+    size_type remains = avail - pos;
+    if (remains > add)
+    {
+        uninitialized_copy(avail - remains, avail, avail);
+        copy_backward(pos, avail - remains, avail); // 逆序复制元素
+        copy(first, last, pos);
+    }
+    else
+    {
+        uninitialized_copy(pos, pos + add, avail + add - remains);
+        copy(first, first + remains, pos);
+        uninitialized_copy(first + remains, last, avail);
+    }
+
     avail += add;
-    alloc.construct(avail, temp);
-
-    for(auto i = avail - add - 2; i >= pos + add; --i)
-        base[i+1] = base[i];
-
-    copy(first, last, pos);
-    return pos + add;
+    return pos;
 }
 
 
 template<typename T>
 typename Vec<T>::iterator Vec<T>::erase(iterator pos)
 {
-    alloc.destory(pos);
+    alloc.destroy(pos);
     for(auto it = pos + 1 ; it < avail; ++it)
-        base[it - 1] = base[it];
+        *(it - 1) = *it;
 
     --avail;
 
@@ -182,16 +214,16 @@ typename Vec<T>::iterator Vec<T>::erase(iterator pos)
 template<typename T>
 typename Vec<T>::iterator Vec<T>::erase(iterator first, iterator last)
 {
-    if (!(first > base && last < avail))
+    if (!(first >= base && last < avail))
         throw "illegal input iterator";
 
     for(auto it = first; it != last;++it)
-        alloc.destory(it);
+        alloc.destroy(it);
 
     size_type minus = last - first;
 
     for (auto it = last; it < avail; ++it)
-        base[it - minus] = base[it];
+        *(it - minus) = *it;
 
     avail -= minus;
 
@@ -213,7 +245,7 @@ template<typename T>
 bool Vec<T>::operator==(const Vec& v)
 {
     if (size() != v.size())
-    return false;
+        return false;
 
     for(size_t i = 0; i < size(); ++i)
     {
@@ -257,7 +289,7 @@ void Vec<T>::del()
     {
         iterator it = limit;
         while(it != base)
-            alloc.destory(--it); //destory实际上就是运行了类的析构函数，如果类中存在指针，那么缺少这一步会造成内存泄漏
+            alloc.destroy(--it); //destory实际上就是运行了类的析构函数，如果类中存在指针，那么缺少这一步会造成内存泄漏
 
         alloc.deallocate(base, limit - base);
         base = limit = avail = nullptr;
@@ -269,8 +301,8 @@ template<typename T>
 void Vec<T>::grow()
 {
     size_type new_size = (base == limit) ? 1 : 2*(limit - base);
-    size_type new_base = alloc.allocate(new_size);
-    size_type new_avail = uninitialized_copy(base, avail, new_base);
+    iterator new_base = alloc.allocate(new_size);
+    iterator new_avail = uninitialized_copy(base, avail, new_base);
 
     del();
 
@@ -287,12 +319,29 @@ void Vec<T>::grow()
 int main(int argc, char* argv[])
 {
 	{
+        Vec<int> v1;
+        Vec<string> v2(5, "hape");
+        Vec<string> v3(v2);
+        Vec<int> v4 = v1;
 
+        assert(v2.size() == 5);
+        v4.push_back(3);
+        assert(!v4.empty());
+        assert(v3.front() == "hape");
+        v2.clear();
+        assert(v2.empty());
+        v4.insert(v4.begin(), 2);
+        v4.insert(v4.begin(), 1);
+        assert(v4[0] == 1 && v4[2] == 3);
+        v1.insert(v1.begin(), v4.begin(), v4.end());
+        assert(v1 == v4);
+        v1.erase(v1.begin());
+        assert(v1.front() == 2);
+        v4.erase(v4.begin(), v4.begin() + 2);
+        assert(v4.front() == 3);
 	}
 
 	_CrtDumpMemoryLeaks();
-	//由于该检测手法实在main函数推出前检测，而此时各个类实例还没出作用域
-	//所以一直会存在内存泄漏，解决方法就是多加一层括号
 }
 
 #endif // DEBUG
