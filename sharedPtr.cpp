@@ -146,7 +146,7 @@ void sharedPtr<T>::make_unique()
 	if ((*count) > 1)
 	{
 		--(*count);
-		pt = pt ? clone(pt) : 0;
+		pt = pt ? clone(pt) : nullptr;
 		count = new size_t(1);
 	}
 }

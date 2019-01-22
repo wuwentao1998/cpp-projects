@@ -7,7 +7,7 @@
 
 using namespace std;
 
-#define DEBUG
+//#define DEBUG
 
 template<typename T>
 class Vec
@@ -114,15 +114,14 @@ void Vec<T>::clear()
 template<typename T>
 typename Vec<T>::iterator Vec<T>::insert(iterator pos, const_ref val)
 {
-    // 要特别考虑空容器的情况
-    if (pos == base && base == avail)
+    if (pos > avail)
+        throw "illegal input iterator";
+
+    if (pos == avail)
     {
         push_back(val);
         return pos;
     }
-
-    if (pos >= avail)
-        throw "illegal input iterator";
 
     if (avail + 1 > limit)
     {
@@ -149,18 +148,8 @@ template<typename T>
 template<typename In>
 typename Vec<T>::iterator Vec<T>::insert(iterator pos, In first, In last)
 {
-    if ((base != avail && pos >= avail) || last <= first)
+    if (pos > avail || last <= first)
         throw "illegal input iterator";
-
-    if (base == avail && pos == avail)
-    {
-        while (first != last)
-        {
-            push_back(*first);
-            first++;
-        }
-        return pos;
-    }
 
     size_type add = last - first;
 
@@ -171,7 +160,7 @@ typename Vec<T>::iterator Vec<T>::insert(iterator pos, In first, In last)
         pos = base + offset;
     }
 
-    if (pos + 1 == avail)
+    if (pos == avail)
     {
         uninitialized_copy(first, last, avail);
         avail += add;
