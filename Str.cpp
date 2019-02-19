@@ -1,3 +1,5 @@
+// 这里的实现不是标准库中的实现，标准库中的成员变量应该是一个char* 指针和长度变量
+
 #include "Vec.cpp"
 #include "sharedPtr.cpp"
 #include <ctype.h>

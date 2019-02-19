@@ -12,16 +12,19 @@ using namespace std;
 template <typename T>
 struct Node
 {
-    Node<T>* prev; // 注意这里的Node也要加<T>后缀
-    Node<T>* next;
     T val;
+    Node* prev;
+    Node* next;
 
     Node(): prev(nullptr), next(nullptr) {}
     Node(const T& Val): val(Val), prev(nullptr), next(nullptr) {}
 };
 
+
+// 预先声明
 template <typename T>
 class List;
+
 
 template <typename T>
 class List_iterator
@@ -60,8 +63,10 @@ public:
     typedef const List_iterator<T> const_iterator;
 
     List() { createHead(); }
-    List(int num, const T& val);
+    List(int num, T val);
     List(const List& other);
+    List& operator=(const List& other);
+    ~List();
 
     // 因为是循环链表，所以需要标记链表头，head节点便是这样的节点
     // 因此head节点本身不含有效val，head节点的下一个节点才是真正的头节点，而head节点本身来表示end节点也符合前闭后开原则
@@ -71,102 +76,16 @@ public:
     const_iterator end() const {return iterator(head);}
     bool empty() {return head->next == head;}
 
-    void push_back(const T& val);
+    void push_back(T val);
     void pop_back();
-    iterator insert(iterator pos, const T& val);
+    iterator insert(iterator pos, T val);
     iterator erase(iterator pos);
+    void clear();
 private:
     void createHead();
 
     Ptr head;
 };
-
-
-
-/* List公有成员函数 */
-
-template <typename T>
-List<T>::List(int num, const T& val)
-{
-    createHead();
-    for (int i = 0; i < num; i++)
-        push_back(val);
-}
-
-template <typename T>
-List<T>::List(const List& other)
-{
-    createHead();
-    for (auto list: other)
-        push_back(list->val);
-}
-
-template <typename T>
-void List<T>::push_back(const T& val)
-{
-    Ptr tail = head->prev;
-    Ptr newNode = new Node(val);
-    newNode->prev = tail;
-    newNode->next = head;
-    tail->next = newNode;
-    head->prev = newNode;
-}
-
-template <typename T>
-void List<T>::pop_back()
-{
-    if (empty())
-        return;
-
-    Ptr tail = head->prev;
-    Ptr prevTail = tail->prev;
-    prevTail->next = head;
-    head->prev = prevTail;
-    delete tail;
-    tail = nullptr;
-}
-
-template <typename T>
-typename List<T>::iterator List<T>::insert(iterator pos, const T& val)
-{
-    Ptr newNode = new Node(val);
-    Ptr curNode = pos.cur;
-    Ptr prevNode = curNode->prev;
-    prevNode->next = newNode;
-    newNode->prev = prevNode;
-    newNode->next = curNode;
-    curNode->prev = newNode;
-
-    return iterator(newNode);
-}
-
-template <typename T>
-typename List<T>::iterator List<T>::erase(iterator pos)
-{
-    if (empty())
-        return iterator();
-
-    Ptr& curNode = pos.cur;
-    Ptr prevNode = curNode->prev;
-    Ptr nextNode = curNode->next;
-    prevNode->next = nextNode;
-    nextNode->prev = prevNode;
-    delete curNode;
-    curNode = nullptr;
-
-    return iterator(nextNode);
-}
-
-
-/* List私有成员函数 */
-
-template <typename T>
-void List<T>::createHead()
-{
-    head = new Node;
-    head->next = head;
-    head->prev = head;
-}
 
 
 /* List_iterator公有成员函数 */
@@ -199,12 +118,162 @@ List_iterator<T> List_iterator<T>::operator++(int)
 }
 
 
+/* List公有成员函数 */
+
+template <typename T>
+List<T>::List(int num, T val)
+{
+    createHead();
+    for (int i = 0; i < num; i++)
+        push_back(std::move(val));
+}
+
+template <typename T>
+List<T>::List(const List& other)
+{
+    createHead();
+    iterator it = other.begin();
+    iterator endIt = other.end();
+    while (it != endIt)
+    {
+        push_back(*it);
+        it++;
+    }
+}
+
+template <typename T>
+List<T>& List<T>::operator=(const List& other)
+{
+    if (&other != this)
+    {
+        if (begin() != end())
+            clear();
+
+        iterator it = other.begin();
+        iterator endIt = other.end();
+        while (it != endIt)
+        {
+            push_back(*it);
+            it++;
+        }
+    }
+
+    return *this;
+}
+
+template <typename T>
+List<T>::~List()
+{
+    if (begin() != end())
+        clear();
+
+    delete head;
+    head = nullptr;
+}
+
+template <typename T>
+void List<T>::push_back(T val)
+{
+    Ptr tail = head->prev;
+    Ptr newNode = new Node(std::move(val));
+    newNode->prev = tail;
+    newNode->next = head;
+    tail->next = newNode;
+    head->prev = newNode;
+}
+
+template <typename T>
+void List<T>::pop_back()
+{
+    if (empty())
+        return;
+
+    Ptr tail = head->prev;
+    Ptr prevTail = tail->prev;
+    prevTail->next = head;
+    head->prev = prevTail;
+    delete tail;
+    tail = nullptr;
+}
+
+template <typename T>
+typename List<T>::iterator List<T>::insert(iterator pos, T val)
+{
+    Ptr newNode = new Node(std::move(val));
+    Ptr curNode = pos.cur;
+    Ptr prevNode = curNode->prev;
+    prevNode->next = newNode;
+    newNode->prev = prevNode;
+    newNode->next = curNode;
+    curNode->prev = newNode;
+
+    return iterator(newNode);
+}
+
+template <typename T>
+typename List<T>::iterator List<T>::erase(iterator pos)
+{
+    if (empty())
+        return iterator();
+
+    Ptr& curNode = pos.cur;
+    Ptr prevNode = curNode->prev;
+    Ptr nextNode = curNode->next;
+    prevNode->next = nextNode;
+    nextNode->prev = prevNode;
+    delete curNode;
+    curNode = nullptr;
+
+    return iterator(nextNode);
+}
+
+template <typename T>
+void List<T>::clear()
+{
+    iterator it = begin();
+    iterator endIt = end();
+    while (it != endIt)
+    {
+        Ptr temp = it.cur;
+        it++;
+        delete temp;
+        temp = nullptr;
+    }
+
+    head->next = head;
+    head->prev = head;
+}
+
+/* List私有成员函数 */
+
+template <typename T>
+void List<T>::createHead()
+{
+    head = new Node;
+    head->next = head;
+    head->prev = head;
+}
+
+
+
 /* 测试代码 */
 
 #ifdef DEBUG
 
 int main(int argc, char* argv[])
 {
+    List<int> a;
+    List<int> b(3, 5);
+    List<int> c(b);
+    List<int> d(4,6);
+    d = c;
+
+    a.push_back(9);
+    a.push_back(0);
+    a.pop_back();
+    a.insert(a.begin(), 8);
+    a.erase(++a.begin());
+    a.clear();
 
 }
 
