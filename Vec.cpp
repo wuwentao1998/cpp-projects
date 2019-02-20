@@ -233,6 +233,9 @@ typename Vec<T>::ref Vec<T>::at(size_type n)
 template<typename T>
 bool Vec<T>::operator==(const Vec& v)
 {
+    if (&v == this)
+        return true;
+
     if (size() != v.size())
         return false;
 

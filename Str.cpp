@@ -112,13 +112,15 @@ Str& Str::operator+=(const Str& s)
 {
     string.insert(string.end(), s.string.begin(), s.string.end());
     //copy(s.string.begin(), s.string.end(), back_inserter(string));
-    renew_pt();
     return *this;
 }
 
 
 bool Str::operator==(const Str& s)
 {
+    if (&s == this)
+        return true;
+
     if (size() != s.size())
         return false;
 
@@ -172,6 +174,7 @@ int main(int argc, char* argv[])
         assert(strcmp(str2.c_str(), "abcdefg123") == 0);
         assert(str2 == str2);
         cout << str2;
+        assert(str1 == str1);
 	}
 
 	_CrtDumpMemoryLeaks();

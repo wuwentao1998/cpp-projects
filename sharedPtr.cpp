@@ -50,7 +50,7 @@ sharedPtr<T>& make_shared(T args)
 }
 
 template<typename T>
-sharedPtr<T>& make_shard()
+sharedPtr<T>& make_shared()
 {
 	return sharedPtr<T>();
 }
