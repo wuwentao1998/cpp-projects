@@ -7,7 +7,7 @@
 
 using namespace std;
 
-//#define DEBUG
+#define DEBUG
 
 template<typename T>
 class Vec
@@ -171,13 +171,13 @@ typename Vec<T>::iterator Vec<T>::insert(iterator pos, In first, In last)
     size_type remains = avail - pos;
     if (remains > add)
     {
-        uninitialized_copy(avail - remains, avail, avail);
-        copy_backward(pos, avail - remains, avail); // 逆序复制元素
+        uninitialized_copy(avail - add, avail, avail);
+        copy_backward(pos, avail - add, avail); // 逆序复制元素
         copy(first, last, pos);
     }
     else
     {
-        uninitialized_copy(pos, pos + add, avail + add - remains);
+        uninitialized_copy(pos, avail, avail + add - remains);
         copy(first, first + remains, pos);
         uninitialized_copy(first + remains, last, avail);
     }
@@ -331,6 +331,20 @@ int main(int argc, char* argv[])
         assert(v1.front() == 2);
         v4.erase(v4.begin(), v4.begin() + 2);
         assert(v4.front() == 3);
+        Vec<int> v5(10, 1);
+        int a[] = {2,2,2,2,2};
+        v5.insert(v5.begin() + 7, a, a + 5);
+        for(int i = 0; i < 15; i++)
+            cout << v5[i];
+        cout << endl;
+
+        Vec<int> v6(7, 1);
+        int b[] = {2,2,2};
+        v6.insert(v6.begin() + 2, b, b + 3);
+        for(int i = 0; i < 10; i++)
+            cout << v6[i];
+        cout << endl;
+
 	}
 
 	_CrtDumpMemoryLeaks();
